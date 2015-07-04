@@ -1,6 +1,6 @@
 import memory,constants,random,copy
 
-DEPTH = 5
+DEPTH = 7
 HWEIGHTS = (1,1,1)
 class SupermanPlayer:
 
@@ -39,25 +39,40 @@ class SupermanPlayer:
         elif color == 'B': oppColor = 'W'
         else: assert False, 'ERROR: Current player is not W or B!'
         colorValue = 1 if color == 'W' else -1
-        v = self.negamax(board,DEPTH,colorValue)
-        print "Move: ", v
-        return v
+        x=self.negamax(board,DEPTH,colorValue, -99999, 99999, None)[1]
+        print "Move: ", x
+        return x
 
-    def negamax(self,board, depth, colorValue):
+    def negamax(self,board, depth, colorValue, alpha, beta, bestNode):
         if self.isGameOver(board) or depth == 0:
-            return colorValue * self.heuristic(board,colorValue)
-        maxVal = -9999999
-        bestPosition = None
-        opponentColor = 'B' if self.color == 'W' else 'W'
-        self.findValidMoves(board,self.color,self.validMoves)
-        self.findValidMoves(board, opponentColor, self.opponentValidMoves)
-        for position in self.validMoves:
+            return (colorValue * self.heuristic(board,colorValue), bestNode)
+        maxVal = -99999
+        #opponentColor = 'B' if colorValue == 1 else 'W'
+        self.findValidMoves(board,'W' if colorValue == 1 else 'B', self.validMoves if colorValue == 1 else self.opponentValidMoves)
+        self.findValidMoves(board, 'B' if colorValue == 1 else 'W', self.opponentValidMoves if colorValue == 1 else self.validMoves)
+        moves = self.validMoves if colorValue == 1 else self.opponentValidMoves
+        if len(moves) == 0: return (maxVal,None)
+        bestPosition = moves[0]
+        alphaPosition = moves[0]
+        for i,j in ((0,0),(0,len(board)-1),(len(board)-1,0),(len(board)-1,len(board)-1)):
+            if (i,j) in moves:
+                return (alpha,(i,j))
+        for position in moves:
             boardCopy = copy.deepcopy(board)
-            x = -1*self.negamax(boardCopy, depth-1, -1*colorValue)
-            if x >= maxVal:
+            boardCopy[position[0]][position[1]] = 'W' if colorValue == 1 else 'B' 
+            x = -1*self.negamax(boardCopy, depth-1, -1*colorValue, -1*beta, -1*alpha, position)[0]
+            #print "x: ",x,"alpha:",alpha, "maxVal:", maxVal
+            if x > maxVal:
                 maxVal = x
                 bestPosition = position
-        return bestPosition
+            if x > alpha:
+                alpha = x
+                alphaPosition = position
+            if alpha > beta:
+                #print "Returning alpha and alphaPosition", (alpha, (1,1))
+                return (alpha, alphaPosition)
+        #print "Returning maxval and bestPosition", (maxVal, (1,1))
+        return (maxVal, bestPosition)
 
     def gameEnd(self, board):
         '''
@@ -128,8 +143,6 @@ class SupermanPlayer:
             for col in xrange(0,len(board)):
                 if board[row][col] == 'G':
                     return False
-        # opponentColor = 'B' if self.Color == 'W' else 'W' 
-        # self.findValidMoves(board, opponentColor, self.opponentValidMoves)
         if len(self.getValidMoves(board)) != 0 or len(self.getOpponentValidMoves(board)) != 0 :
             return False
         return True
@@ -138,26 +151,28 @@ class SupermanPlayer:
         cornerDisks = 0
         edgeDisks = 0
         availableMoves = 0
+        color = 'W' if colorValue == 1 else 'B'
+        opponentColor = 'B' if colorValue == 1 else 'W'
+        moves =  self.getValidMoves(board) if colorValue == 1 else self.getOpponentValidMoves(board)
         #find number of disks in corners
         for i,j in ((0,0),(0,len(board)-1),(len(board)-1,0),(len(board)-1,len(board)-1)):
-            if board[i][j] == self.color:
+            if board[i][j] == color:
                 cornerDisks+=1
         #find number of disks along edge, and subtract the opponent disk along the edge from this.
-        opponentColor = 'B' if colorValue == 1 else 'W'
         for row in (0, len(board)-1):
             for col in xrange(0,len(board)):
-                if board[row][col] == self.color:
+                if board[row][col] == color:
                     edgeDisks+=1
                 elif board[row][col] == opponentColor:
                     edgeDisks-=1
         for col in (0, len(board)-1):
             for row in xrange(0,len(board)):
-                if board[row][col] == self.color:
+                if board[row][col] == color:
                     edgeDisks+=1
                 elif board[row][col] == opponentColor:
                     edgeDisks-=1        
         #find number of available moves
-        availableMoves = len(self.getValidMoves(board))
+        availableMoves = len(moves)
         #find potential mobility (?)
         return HWEIGHTS[0]*cornerDisks + HWEIGHTS[1]*edgeDisks + HWEIGHTS[2]*availableMoves
 
