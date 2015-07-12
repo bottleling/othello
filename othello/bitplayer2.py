@@ -2,7 +2,7 @@ import memory,constants
 import bitutility as bu
 DEPTH = 6
 HWEIGHTS = [20,10,5,-15,-25]
-
+transposition_table = {}
 class BitPlayer2:
 
     def __init__(self, color):
@@ -72,6 +72,8 @@ class BitPlayer2:
     
 
     def negamax(self, bitBoards, depth, colorValue, alpha, beta, bestIndex):
+        if bitBoards in transposition_table:
+            return transposition_table[bitBoards]
         myColor = 'W' if colorValue == 1 else 'B'
         oppColor = 'B' if colorValue ==1 else 'W'
         myBoard, oppBoard = bu.whoseBoard(bitBoards, myColor)
@@ -80,15 +82,21 @@ class BitPlayer2:
         # print [divmod(x,8) for x in myMoves]
         heuristic = self.heuristic2 if self.numberOfPly > 8 else self.heuristic1
         #heuristic = self.heuristic1
-        if self.isBoardFull(bitBoards) or depth == 0: return (colorValue * heuristic(bitBoards,myColor,myMoves),bestIndex)
+        if self.isBoardFull(bitBoards) or depth == 0: 
+            transposition_table[bitBoards] = (colorValue * heuristic(bitBoards,myColor,myMoves),bestIndex)
+            return transposition_table[bitBoards]
         oppMoves = bu.getIndexesOfTrue(bu.getValidMoves(bitBoards,oppColor))
         if len(myMoves) == 0 :
-            if len(oppMoves)==0: return (colorValue * heuristic(bitBoards,myColor,myMoves),bestIndex)
-            return (-99999, None)
+            if len(oppMoves)==0: 
+                transposition_table[bitBoards] = (colorValue * heuristic(bitBoards,myColor,myMoves),bestIndex)
+                return transposition_table[bitBoards]
+            transposition_table[bitBoards] = (-99999, None)
+            return transposition_table[bitBoards]
 
         for corner in (0,7,56,63):
             if corner in myMoves:
-                return (colorValue * heuristic(bitBoards,myColor,myMoves),corner)
+                transposition_table[bitBoards] = (colorValue * heuristic(bitBoards,myColor,myMoves),corner)
+                return transposition_table[bitBoards]
 
         maxVal = -99999
         bestPosition = myMoves[0]
@@ -101,12 +109,13 @@ class BitPlayer2:
                 alpha = x
                 alphaPosition = position
             if alpha > beta:
-                return (alpha, alphaPosition)
+                transposition_table[bitBoards] = (alpha, alphaPosition)
+                return transposition_table[bitBoards]
             if x > maxVal:
                 maxVal = x
                 bestPosition = position
-            
-        return (maxVal, bestPosition)
+        transposition_table[bitBoards] = (maxVal, bestPosition)
+        return transposition_table[bitBoards]
 
     
     def isBoardFull(self,bitBoards):
