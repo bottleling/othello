@@ -1,18 +1,18 @@
 import memory,constants
 import bitutility as bu
 DEPTH = 6
-HWEIGHTS = (5,2,1)
+HWEIGHTS = [20,10,5,-15,-25]
 
-class BitPlayer:
+class BitPlayer2:
 
     def __init__(self, color):
         '''
         Make sure to store the color of your player ('B' or 'W')
         You may init your data structures here, if any
         '''
-        print 'BitPlayer init!' #print name of class to ensure that right class is used
+        print 'BitPlayer 2 init!' #print name of class to ensure that right class is used
         self.color = color #color is 'B' or 'W'
-        
+        self.numberOfPly = 0
 
     def chooseMove(self, board, prevMove): #REMEMBER TO CHECK IF FINDVALIDMOVES HAS BEEN CALLED BEFORE GETTING
         '''
@@ -37,6 +37,8 @@ class BitPlayer:
         if   color == 'W': oppColor = 'B'
         elif color == 'B': oppColor = 'W'
         else: assert False, 'ERROR: Current player is not W or B!'
+
+        self.numberOfPly +=1
         colorValue = 1 if color == 'W' else -1
         bitBoards = bu.convertToBitBoards(board)
         x=self.negamax(bitBoards,DEPTH,colorValue, -99999, 99999, None)[1]
@@ -44,6 +46,7 @@ class BitPlayer:
         if x!=None:
             coordinates = divmod(x, constants.BRD_SIZE)
         print "Move: ", coordinates
+
         return coordinates
 
     def gameEnd(self, board):
@@ -73,24 +76,19 @@ class BitPlayer:
         oppColor = 'B' if colorValue ==1 else 'W'
         myBoard, oppBoard = bu.whoseBoard(bitBoards, myColor)
         myMoves = bu.getIndexesOfTrue(bu.getValidMoves(bitBoards,myColor))
-        sortedmyMoves=sorted(myMoves, reverse=True)
-        #print sorted(myMoves, reverse=True)
-        #choose the optimize moves from available myMoves
-        optimize_moves=shallow_search(bitBoards, myColor, myMoves, 2, 5)
-
         # print "my color:", myColor
         # print [divmod(x,8) for x in myMoves]
-        if self.isBoardFull(bitBoards) or depth == 0: return (colorValue * self.heuristic2(bitBoards,myColor,myMoves),bestIndex)
+        heuristic = self.heuristic2 if self.numberOfPly > 8 else self.heuristic1
+        #heuristic = self.heuristic1
+        if self.isBoardFull(bitBoards) or depth == 0: return (colorValue * heuristic(bitBoards,myColor,myMoves),bestIndex)
         oppMoves = bu.getIndexesOfTrue(bu.getValidMoves(bitBoards,oppColor))
-        sortedoppMoves=sorted(oppMoves, reverse=True)
-
         if len(myMoves) == 0 :
-            if len(oppMoves)==0: return (colorValue * self.heuristic2(bitBoards,myColor,myMoves),bestIndex)
+            if len(oppMoves)==0: return (colorValue * heuristic(bitBoards,myColor,myMoves),bestIndex)
             return (-99999, None)
 
         for corner in (0,7,56,63):
             if corner in myMoves:
-                return (colorValue * self.heuristic2(bitBoards,myColor,myMoves),corner)
+                return (colorValue * heuristic(bitBoards,myColor,myMoves),corner)
 
         maxVal = -99999
         bestPosition = myMoves[0]
@@ -117,12 +115,15 @@ class BitPlayer:
         return False
 
     
-    def heuristic(self, bitBoards, myColor, myMoves):
+    def heuristic1(self, bitBoards, myColor, myMoves):
         myBoard, oppBoard = bu.whoseBoard(bitBoards, myColor)
         cornerDisks = bu.getNumberOfCornerDisks(myBoard)
         edgeDisks = bu.getNumberOfEdgeDisks(myBoard) - bu.getNumberOfEdgeDisks(oppBoard)
         availableMoves = len(myMoves)
-        return HWEIGHTS[0]*cornerDisks + HWEIGHTS[1]*edgeDisks + HWEIGHTS[2]*availableMoves
+        cDisks = bu.getNumberOfCDisks(myBoard)
+        xDisks = bu.getNumberOfXDisks(myBoard)
+
+        return HWEIGHTS[0]*cornerDisks + HWEIGHTS[1]*edgeDisks + HWEIGHTS[2]*availableMoves + HWEIGHTS[3] * cDisks + HWEIGHTS[4] * xDisks
 
     def heuristic2(self, bitBoards, myColor, myMoves):
         weight = [[99,-8,8,6,6,8,-8,99],
@@ -143,19 +144,3 @@ class BitPlayer:
         for (i,j) in oppBoardIndexes:
             oppBoardWeight+= weight[i][j]
         return myBoardWeight - oppBoardWeight
-
-    # choose the k-best moves from myMoves
-    # based on the weight heuristic function to choose the top k-best myMoves
-    def shallow_search(self,bitBoards, myColor, myMoves, shallow_depth, numofBestMoves):
-        #perform a shallow search
-        myBoard, oppBoard=bu.whoseBoard(bitBoards,myColor)
-        max_score = -99999
-        for i in range(0,numofBestMoves):
-            availableMoves(myMoves[i])
-        # initialize dictionary of score for each position
-        scores = dict((pos,None) for pos in availableMoves)
-        for pos, score in scores.iteritems():
-            if score != None and score >= max_score:
-                move = pos
-                max_score = score
-        return move

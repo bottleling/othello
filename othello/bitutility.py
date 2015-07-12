@@ -134,11 +134,20 @@ def getNumberOfCornerDisks(bitBoard):
     mask = 0b1000000100000000000000000000000000000000000000000000000010000001
     bitBoard &= mask
     return bin(bitBoard).count("1")
+def getNumberOfCDisks(bitBoard):
+    mask = 0b0100001010000001000000000000000000000000000000001000000101000010
+    bitBoard &= mask
+    return bin(bitBoard).count("1")
+def getNumberOfXDisks(bitBoard):
+    mask = 0b0000000001000010000000000000000000000000000000000100001000000000
+    bitBoard &= mask
+    return bin(bitBoard).count("1")
 
 ###TEST CONVERSION AND SETTING OF BITS###
 # twodimarray = [['G','G','G','G','G','G','G','G'],['G','G','G','G','G','G','G','G'],['G','G','G','G','G','G','G','G'],['G','G','G','B','W','G','G','G'],
 # ['G','G','G','W','B','G','G','G'],['G','G','G','G','G','G','G','G'],['G','G','G','G','G','G','G','G'],['G','G','G','G','G','G','G','G']]
 # whitebb, blackbb = convertToBitBoards(twodimarray)
+
 # print "White BB:"
 # prettyPrint(whitebb)
 # print "Black BB:"
